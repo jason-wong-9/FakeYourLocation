@@ -13,6 +13,7 @@ import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.util.Log;
+import android.widget.TextView;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -28,6 +29,9 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     private LocationManager mLocationManager;
     private LocationListener mLocationListener;
     private Marker currentMarker;
+    private Marker destinationMarker;
+    private TextView destinationText;
+
     private final int MY_PERMISSIONS_REQUEST_READ_CONTACTS = 123;
     private final long LOCATION_REFRESH_TIME = 1000;
     private final float LOCATION_REFRESH_DISTANCE = 100;
@@ -36,6 +40,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        destinationText = (TextView) findViewById(R.id.destinationText);
         mLocationListener = new LocationListener() {
             @Override
             public void onLocationChanged(Location location) {
@@ -92,24 +97,39 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
-
+        mMap.getUiSettings().setMapToolbarEnabled(false);
         requestPermission();
         statusCheck();
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             Location lastLocation = mLocationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);
             updateMap(lastLocation);
         }
-
+        mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
+            @Override
+            public void onMapClick(LatLng latLng) {
+                if (destinationMarker != null){
+                    destinationMarker.remove();
+                }
+                MarkerOptions currentMarkerOptions = new MarkerOptions().position(latLng).title("Destination");
+                destinationMarker = mMap.addMarker(currentMarkerOptions);
+            }
+        });
     }
+
 
     private void updateMap(Location location) {
         if (location == null) return;
-        if (currentMarker != null){
-            currentMarker.remove();
-        }
         Log.d(TAG, location.toString() + "updated");
         LatLng currentLatLng = new LatLng(location.getLatitude(), location.getLongitude());
-        mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 14.0f));
+        if (currentMarker != null){
+            currentMarker.remove();
+            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng,
+                    14.0f));
+        } else {
+            Log.d(TAG, "Zoom Camera");
+            mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 14.0f));
+        }
+
         MarkerOptions currentMarkerOptions = new MarkerOptions().position(currentLatLng).title("Current Location");
         currentMarker = mMap.addMarker(currentMarkerOptions);
     }
