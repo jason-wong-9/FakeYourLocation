@@ -1,4 +1,9 @@
 <resources>
     <string name="app_name">FakeitTillYouMakeit</string>
     <string name="title_activity_main">FakeitTillYouMakeit</string>
+    <string name="please_select_destination">Please select destination</string>
+    <string name="walk">Walk</string>
+    <string name="running">Running</string>
+    <string name="instant">Instant</string>
+    <string name="start">Start</string>
 </resources>

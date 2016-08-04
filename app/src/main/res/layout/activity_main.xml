@@ -6,8 +6,9 @@
         android:layout_width="match_parent"
         android:layout_height="70dp"
         android:textAlignment="center"
-        android:text="Please select destination"
+        android:text="@string/please_select_destination"
         android:gravity="center_vertical"
+        android:id="@+id/destinationText"
         />
     <LinearLayout
         android:layout_width="match_parent"
@@ -29,26 +30,27 @@
             android:layout_height="0dp"
             android:layout_weight="0.15"
             android:gravity="center_horizontal"
-            android:orientation="horizontal">
+            android:orientation="horizontal"
+            android:id="@+id/radioGroup">
             <RadioButton
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Walk"
+                android:text="@string/walk"
                 android:checked="true"
-                android:id="@+id/radioButton1"
+                android:id="@+id/radio_walk"
                 android:layout_gravity="center"
                 android:layout_marginRight="10dp"/>
             <RadioButton
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Running"
-                android:id="@+id/radioButton2"
+                android:text="@string/running"
+                android:id="@+id/radio_running"
                 android:layout_gravity="center" />
             <RadioButton
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Instant"
-                android:id="@+id/radioButton3"
+                android:text="@string/instant"
+                android:id="@+id/radio_instant"
                 android:layout_gravity="center"
                 android:layout_marginLeft="10dp"/>
         </RadioGroup>
@@ -61,7 +63,8 @@
             android:layout_gravity="center"
             android:backgroundTint="@color/colorAccent"
             android:textColor="#ffffff"
-            android:text="Start"
+            android:text="@string/start"
+            android:id="@+id/startButton"
             android:textAlignment="center"
             android:layout_weight="0.15"
             android:layout_marginBottom="50dp"/>

@@ -13,6 +13,9 @@ import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AlertDialog;
 import android.util.Log;
+import android.view.View;
+import android.widget.Button;
+import android.widget.RadioGroup;
 import android.widget.TextView;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -23,14 +26,22 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
-public class MainActivity extends FragmentActivity implements OnMapReadyCallback {
+public class MainActivity extends FragmentActivity implements OnMapReadyCallback, View.OnClickListener {
     public static final String TAG = MainActivity.class.getName();
+    public static final String TYPE_WALK = "WALK";
+    public static final String TYPE_RUNNING = "RUNNING";
+    public static final String TYPE_INSTANT = "INSTANT";
     private GoogleMap mMap;
     private LocationManager mLocationManager;
     private LocationListener mLocationListener;
     private Marker currentMarker;
     private Marker destinationMarker;
-    private TextView destinationText;
+    private LatLng destinationLatLng;
+    private LatLng currentLatLng;
+    private TextView mDestinationText;
+    private RadioGroup mRadioGroup;
+    private Button mStartButton;
+    private String type;
 
     private final int MY_PERMISSIONS_REQUEST_READ_CONTACTS = 123;
     private final long LOCATION_REFRESH_TIME = 1000;
@@ -40,7 +51,11 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        destinationText = (TextView) findViewById(R.id.destinationText);
+        mDestinationText = (TextView) findViewById(R.id.destinationText);
+        mRadioGroup = (RadioGroup) findViewById(R.id.radioGroup);
+        mStartButton = (Button) findViewById(R.id.startButton);
+        mStartButton.setOnClickListener(this);
+
         mLocationListener = new LocationListener() {
             @Override
             public void onLocationChanged(Location location) {
@@ -76,7 +91,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     private void buildAlertMessageNoGps() {
         final AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setMessage("Your Location seems to be disabled, do you want to enable it?")
+        builder.setMessage("Location seems to be disabled, do you want to enable it?")
                 .setCancelable(false)
                 .setPositiveButton("Yes", new DialogInterface.OnClickListener() {
                     public void onClick(final DialogInterface dialog,  final int id) {
@@ -112,6 +127,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 }
                 MarkerOptions currentMarkerOptions = new MarkerOptions().position(latLng).title("Destination");
                 destinationMarker = mMap.addMarker(currentMarkerOptions);
+                mDestinationText.setText("(" + latLng.latitude + ", " + latLng.longitude + ")");
+                destinationLatLng = latLng;
             }
         });
     }
@@ -120,7 +137,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     private void updateMap(Location location) {
         if (location == null) return;
         Log.d(TAG, location.toString() + "updated");
-        LatLng currentLatLng = new LatLng(location.getLatitude(), location.getLongitude());
+        currentLatLng = new LatLng(location.getLatitude(), location.getLongitude());
         if (currentMarker != null){
             currentMarker.remove();
             mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng,
@@ -147,7 +164,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                         MY_PERMISSIONS_REQUEST_READ_CONTACTS);
             }
         } else {
-            // DO Something
             mLocationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
             mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, LOCATION_REFRESH_TIME,
                     LOCATION_REFRESH_DISTANCE, mLocationListener);
@@ -160,12 +176,9 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                                            String permissions[], int[] grantResults) {
         switch (requestCode) {
             case MY_PERMISSIONS_REQUEST_READ_CONTACTS: {
-                // If request is cancelled, the result arrays are empty.
                 if (grantResults.length > 0
                         && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     Log.v(TAG, "Permission Granted");
-                    // permission was granted, yay! Do the
-                    // contacts-related task you need to do.
                     if ((ContextCompat.checkSelfPermission(this,
                             android.Manifest.permission.ACCESS_FINE_LOCATION)
                             == PackageManager.PERMISSION_GRANTED)){
@@ -176,12 +189,44 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
                 } else {
                     Log.v(TAG, "Permission Denied");
-                    // permission denied, boo! Disable the
-                    // functionality that depends on this permission.
                 }
                 return;
             }
         }
     }
 
+    @Override
+    public void onClick(View view) {
+        int id = view.getId();
+        switch(id){
+            case(R.id.startButton):
+                if (validateForm()){
+                    Log.d(TAG, "Validated Form");
+                }
+                break;
+        }
+    }
+    private boolean validateForm(){
+        int checkedRadioId = mRadioGroup.getCheckedRadioButtonId();
+        getCheckedRadioType(checkedRadioId);
+        Log.d(TAG, type);
+        if (destinationLatLng != null && currentLatLng != null && type != null){
+            return true;
+        }
+        return false;
+    }
+
+    private void getCheckedRadioType(int id){
+        switch(id){
+            case(R.id.radio_walk):
+                type = TYPE_WALK;
+                break;
+            case(R.id.radio_running):
+                type = TYPE_RUNNING;
+                break;
+            case(R.id.radio_instant):
+                type = TYPE_INSTANT;
+                break;
+        }
+    }
 }
