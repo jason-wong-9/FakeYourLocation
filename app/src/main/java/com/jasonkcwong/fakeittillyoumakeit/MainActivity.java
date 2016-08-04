@@ -42,6 +42,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     private RadioGroup mRadioGroup;
     private Button mStartButton;
     private String type;
+    private MockLocationProvider mock;
 
     private final int MY_PERMISSIONS_REQUEST_READ_CONTACTS = 123;
     private final long LOCATION_REFRESH_TIME = 1000;
@@ -107,8 +108,6 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         alert.show();
     }
 
-
-
     @Override
     public void onMapReady(GoogleMap googleMap) {
         mMap = googleMap;
@@ -131,6 +130,9 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 destinationLatLng = latLng;
             }
         });
+        mock = new MockLocationProvider(LocationManager.GPS_PROVIDER, this);
+
+        mock.pushLocation(new LatLng(-12.34, 23.45));
     }
 
 
@@ -202,6 +204,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             case(R.id.startButton):
                 if (validateForm()){
                     Log.d(TAG, "Validated Form");
+                    //Initialize a background service to mock the location
                 }
                 break;
         }
@@ -228,5 +231,10 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 type = TYPE_INSTANT;
                 break;
         }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
     }
 }
