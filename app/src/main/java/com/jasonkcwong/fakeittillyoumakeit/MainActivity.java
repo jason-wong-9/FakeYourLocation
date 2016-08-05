@@ -18,6 +18,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.RadioGroup;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
@@ -32,9 +33,9 @@ import java.util.TimerTask;
 
 public class MainActivity extends FragmentActivity implements OnMapReadyCallback, View.OnClickListener {
     public static final String TAG = MainActivity.class.getName();
-    public static final String TYPE_WALK = "WALK";
-    public static final String TYPE_RUNNING = "RUNNING";
-    public static final String TYPE_INSTANT = "INSTANT";
+//    public static final String TYPE_WALK = "WALK";
+//    public static final String TYPE_RUNNING = "RUNNING";
+//    public static final String TYPE_INSTANT = "INSTANT";
     private GoogleMap mMap;
     private LocationManager mLocationManager;
     private LocationListener mLocationListener;
@@ -50,7 +51,11 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
     private final int MY_PERMISSIONS_REQUEST_READ_CONTACTS = 123;
     private final long LOCATION_REFRESH_TIME = 1000;
-    private final float LOCATION_REFRESH_DISTANCE = 100;
+    private final float LOCATION_REFRESH_DISTANCE = 1;
+
+    public enum Type {
+        WALK, RUNNING, INSTANT
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,6 +69,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         mLocationListener = new LocationListener() {
             @Override
             public void onLocationChanged(Location location) {
+                Log.d(TAG, "onLocationChanged:" + location.toString());
                 updateMap(location);
             }
 
@@ -117,9 +123,13 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         mMap = googleMap;
         mMap.getUiSettings().setMapToolbarEnabled(false);
         requestPermission();
-        statusCheck();
+
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
             Location lastLocation = mLocationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);
+            if (lastLocation == null){
+                Toast.makeText(this, "Failed to get last known location", Toast.LENGTH_LONG);
+                Log.d(TAG, "Last Location is " + lastLocation.toString());
+            }
             updateMap(lastLocation);
         }
         mMap.setOnMapClickListener(new GoogleMap.OnMapClickListener() {
@@ -143,8 +153,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         currentLatLng = new LatLng(location.getLatitude(), location.getLongitude());
         if (currentMarker != null){
             currentMarker.remove();
-            mMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng,
-                    14.0f));
+            mMap.animateCamera((CameraUpdateFactory.newLatLngZoom(currentLatLng,
+                    14.0f)));
         } else {
             Log.d(TAG, "Zoom Camera");
             mMap.animateCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 14.0f));
@@ -170,7 +180,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
             mLocationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
             mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, LOCATION_REFRESH_TIME,
                     LOCATION_REFRESH_DISTANCE, mLocationListener);
-
+            statusCheck();
         }
     }
 
@@ -188,6 +198,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                         mLocationManager = (LocationManager) getSystemService(LOCATION_SERVICE);
                         mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, LOCATION_REFRESH_TIME,
                                 LOCATION_REFRESH_DISTANCE, mLocationListener);
+                        statusCheck();
                     }
 
                 } else {
@@ -203,16 +214,18 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         int id = view.getId();
         switch(id){
             case(R.id.startButton):
-                if (validateForm()){
+                int checkedRadioId = mRadioGroup.getCheckedRadioButtonId();
+                Type type = getCheckedRadioType(checkedRadioId);
+                if (validateForm(type)){
                     Log.d(TAG, "Validated Form");
                     //Initialize a background service to mock the location
-                    moveToDestination();
+                    moveToDestination(type);
                 }
                 break;
         }
     }
 
-    private void moveToDestination(){
+    private void moveToDestination(final Type type){
         if (currentLatLng != destinationLatLng){
             final Handler handler = new Handler();
             final Timer timer = new Timer();
@@ -234,7 +247,7 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                                     timer.purge();
                                 }
                                 Log.d(TAG, "Running task");
-                                if (type == TYPE_INSTANT){
+                                if (type == Type.INSTANT){
                                     Log.d(TAG, "Before Task Execution");
                                     MockLocationAsyncTask mockTask = new MockLocationAsyncTask(
                                             new LatLng(destinationLatLng.latitude, destinationLatLng.longitude),
@@ -255,10 +268,8 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
 
         }
     }
-    private boolean validateForm(){
-        int checkedRadioId = mRadioGroup.getCheckedRadioButtonId();
-        getCheckedRadioType(checkedRadioId);
-        Log.d(TAG, type);
+    private boolean validateForm(Type type){
+        Log.d(TAG, type.toString());
         if (selectedLatLng != null){
             destinationLatLng = selectedLatLng;
         }
@@ -268,18 +279,18 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
         return false;
     }
 
-    private void getCheckedRadioType(int id){
+    private Type getCheckedRadioType(int id){
         switch(id){
             case(R.id.radio_walk):
-                type = TYPE_WALK;
-                break;
+                return Type.WALK;
             case(R.id.radio_running):
-                type = TYPE_RUNNING;
-                break;
+                return Type.RUNNING;
             case(R.id.radio_instant):
-                type = TYPE_INSTANT;
-                break;
+                return Type.INSTANT;
+            default:
+                return Type.WALK;
         }
+
     }
 
     @Override
