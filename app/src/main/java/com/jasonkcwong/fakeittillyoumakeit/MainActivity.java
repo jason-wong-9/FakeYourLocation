@@ -8,6 +8,7 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.content.ContextCompat;
@@ -26,6 +27,9 @@ import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.Marker;
 import com.google.android.gms.maps.model.MarkerOptions;
 
+import java.util.Timer;
+import java.util.TimerTask;
+
 public class MainActivity extends FragmentActivity implements OnMapReadyCallback, View.OnClickListener {
     public static final String TAG = MainActivity.class.getName();
     public static final String TYPE_WALK = "WALK";
@@ -38,11 +42,11 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
     private Marker destinationMarker;
     private LatLng destinationLatLng;
     private LatLng currentLatLng;
+    private LatLng selectedLatLng;
     private TextView mDestinationText;
     private RadioGroup mRadioGroup;
     private Button mStartButton;
     private String type;
-    private MockLocationProvider mock;
 
     private final int MY_PERMISSIONS_REQUEST_READ_CONTACTS = 123;
     private final long LOCATION_REFRESH_TIME = 1000;
@@ -127,12 +131,9 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 MarkerOptions currentMarkerOptions = new MarkerOptions().position(latLng).title("Destination");
                 destinationMarker = mMap.addMarker(currentMarkerOptions);
                 mDestinationText.setText("(" + latLng.latitude + ", " + latLng.longitude + ")");
-                destinationLatLng = latLng;
+                selectedLatLng = latLng;
             }
         });
-        mock = new MockLocationProvider(LocationManager.GPS_PROVIDER, this);
-
-        mock.pushLocation(new LatLng(-12.34, 23.45));
     }
 
 
@@ -205,14 +206,62 @@ public class MainActivity extends FragmentActivity implements OnMapReadyCallback
                 if (validateForm()){
                     Log.d(TAG, "Validated Form");
                     //Initialize a background service to mock the location
+                    moveToDestination();
                 }
                 break;
+        }
+    }
+
+    private void moveToDestination(){
+        if (currentLatLng != destinationLatLng){
+            final Handler handler = new Handler();
+            final Timer timer = new Timer();
+            final MockLocationProvider mockLocationProvider
+                    = new MockLocationProvider(LocationManager.GPS_PROVIDER, this);
+
+            TimerTask task = new TimerTask() {
+                @Override
+                public void run() {
+                    handler.post(new Runnable() {
+                        public void run() {
+                            try {
+                                Log.d(TAG, currentLatLng.toString());
+                                Log.d(TAG, destinationLatLng.toString());
+                                if (currentLatLng.latitude == destinationLatLng.latitude
+                                        && currentLatLng.longitude == currentLatLng.longitude){
+                                    Log.d(TAG, "Timer cancel");
+                                    timer.cancel();
+                                    timer.purge();
+                                }
+                                Log.d(TAG, "Running task");
+                                if (type == TYPE_INSTANT){
+                                    Log.d(TAG, "Before Task Execution");
+                                    MockLocationAsyncTask mockTask = new MockLocationAsyncTask(
+                                            new LatLng(destinationLatLng.latitude, destinationLatLng.longitude),
+                                            mockLocationProvider);
+                                    Log.d(TAG, "Created Task");
+
+                                    mockTask.execute();
+                                }
+
+                            } catch (Exception e) {
+                                // error, do something
+                            }
+                        }
+                    });
+                }
+            };
+            timer.schedule(task, 0, 5000);
+
         }
     }
     private boolean validateForm(){
         int checkedRadioId = mRadioGroup.getCheckedRadioButtonId();
         getCheckedRadioType(checkedRadioId);
         Log.d(TAG, type);
+        if (selectedLatLng != null){
+            destinationLatLng = selectedLatLng;
+        }
         if (destinationLatLng != null && currentLatLng != null && type != null){
             return true;
         }
